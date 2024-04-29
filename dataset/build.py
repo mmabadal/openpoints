@@ -50,6 +50,7 @@ def build_dataloader_from_cfg(batch_size,
                               dataset=None
                               ):
 
+    if dataset is None:
         if datatransforms_cfg is not None:
             # in case only val or test transforms are provided. 
             if split not in datatransforms_cfg.keys() and split in ['val', 'test']:
