@@ -59,42 +59,41 @@ class PIPES(Dataset):
         data_list = sorted(os.listdir(raw_root))
         data_list = [item[:-4] for item in data_list]
         if split == 'train':
-            self.data_list = [
-                item for item in data_list]     #  TODO de aqui coge train val test
+            self.data_list = [item for item in data_list if 'train' in item]     #  TODO de aqui coge train val
         else:
-            self.data_list = [
-                item for item in data_list]      #  TODO de aqui coge train val test
-
-        processed_root = os.path.join(data_root, 'processed')
-        filename = os.path.join(
-            processed_root, f'pipes_{split}_{voxel_size:.3f}_{str(voxel_max)}.pkl')
-        if presample and not os.path.exists(filename):
-            np.random.seed(0)
-            self.data = []
-            for item in tqdm(self.data_list, desc=f'Loading pipes {split} split'):
-                data_path = os.path.join(raw_root, item + '.npy')
-                cdata = np.load(data_path).astype(np.float32)
-                cdata[:, :3] -= np.min(cdata[:, :3], 0)
-                if voxel_size:
-                    coord, feat, label = cdata[:,0:3], cdata[:, 3:6], cdata[:, 6:7]
-                    uniq_idx = voxelize(coord, voxel_size)
-                    coord, feat, label = coord[uniq_idx], feat[uniq_idx], label[uniq_idx]
-                    cdata = np.hstack((coord, feat, label))
-                self.data.append(cdata)
-            npoints = np.array([len(data) for data in self.data])
-            logging.info('split: %s, median npoints %.1f, avg num points %.1f, std %.1f' % (
-                self.split, np.median(npoints), np.average(npoints), np.std(npoints)))
-            os.makedirs(processed_root, exist_ok=True)
-            with open(filename, 'wb') as f:
-                pickle.dump(self.data, f)
-                print(f"{filename} saved successfully")
-        elif presample:
-            with open(filename, 'rb') as f:
-                self.data = pickle.load(f)
-                print(f"{filename} load successfully")
+            self.data_list = [item for item in data_list if 'val' in item]      #  TODO de aqui coge train val
+            for idx, name in enumerate(self.data_list):
+                print(str(idx+1) + " - " + str(name))    
+        #processed_root = os.path.join(data_root, 'processed')
+        #filename = os.path.join(
+        #    processed_root, f'pipes_{split}_{voxel_size:.3f}_{str(voxel_max)}.pkl')
+        #if presample and not os.path.exists(filename):
+        np.random.seed(0)
+        self.data = []
+        for item in tqdm(self.data_list, desc=f'Loading pipes {split} split'):
+            data_path = os.path.join(raw_root, item + '.npy')
+            cdata = np.load(data_path).astype(np.float32)
+            cdata[:, :3] -= np.min(cdata[:, :3], 0)
+            if voxel_size:
+                coord, feat, label = cdata[:,0:3], cdata[:, 3:6], cdata[:, 6:7]
+                uniq_idx = voxelize(coord, voxel_size)
+                coord, feat, label = coord[uniq_idx], feat[uniq_idx], label[uniq_idx]
+                cdata = np.hstack((coord, feat, label))
+            self.data.append(cdata)
+        npoints = np.array([len(data) for data in self.data])
+        logging.info('split: %s, median npoints %.1f, avg num points %.1f, std %.1f' % (
+            self.split, np.median(npoints), np.average(npoints), np.std(npoints)))
+            #os.makedirs(processed_root, exist_ok=True)
+            #with open(filename, 'wb') as f:
+            #    pickle.dump(self.data, f)
+            #    print(f"{filename} saved successfully")
+        #elif presample:
+        #    with open(filename, 'rb') as f:
+        #        self.data = pickle.load(f)
+        #        print(f"{filename} load successfully")
         self.data_idx = np.arange(len(self.data_list))
         assert len(self.data_idx) > 0
-        logging.info(f"\nTotally {len(self.data_idx)} samples in {split} set")
+        logging.info(f"Totally {len(self.data_idx)} samples in {split} set")
 
     def __getitem__(self, idx):
         data_idx = self.data_idx[idx % len(self.data_idx)]

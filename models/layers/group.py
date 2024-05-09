@@ -341,7 +341,7 @@ def create_grouper(group_args):
     radius = group_args_copy.pop('radius', 0.1)
     nsample = group_args_copy.pop('nsample', 20)
 
-    logging.info(group_args)
+    #logging.info(group_args)
     if nsample is not None:
         if method == 'ballquery':
             grouper = QueryAndGroup(radius, nsample, **group_args_copy)
