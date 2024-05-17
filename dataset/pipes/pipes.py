@@ -16,7 +16,7 @@ class PIPES(Dataset):
                'valve']
 
     num_classes = 3
-    num_per_class = np.array([3370714, 2856755, 4919229], dtype=np.int32)  # TODO weights
+    num_per_class = np.array([242967508, 19798250, 4955829], dtype=np.int32)  # TODO weights
     class2color = {'floor':       [0, 0, 0],
                    'pipe':        [0, 255, 0],
                    'valve':        [0, 0, 255]}
