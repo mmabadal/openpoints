@@ -41,7 +41,8 @@ def worker_init_fn(worker_id):
     np.random.seed(np.random.get_state()[1][0] + worker_id)
 
 
-def build_dataloader_from_cfg(batch_size,
+def build_dataloader_from_cfg(cfg,
+                              batch_size,
                               dataset_cfg=None,
                               dataloader_cfg=None,
                               datatransforms_cfg=None,
@@ -69,6 +70,15 @@ def build_dataloader_from_cfg(batch_size,
         if split_cfg.get('split', None) is None:    # add 'split' in dataset_split_cfg
             split_cfg.split = split
         split_cfg.transform = data_transform
+
+        split_cfg.classes = cfg.classes
+        split_cfg.num_classes = cfg.num_classes
+        split_cfg.num_per_class = cfg.num_per_class
+        split_cfg.cmap = cfg.cmap
+        split_cfg.gravity_dim = cfg.datatransforms.kwargs.gravity_dim
+        split_cfg.data_root = cfg.dataset.common.data_root
+        split_cfg.voxel_size = cfg.dataset.common.voxel_size
+
         dataset = build_dataset_from_cfg(dataset_cfg.common, split_cfg)
 
     collate_fn = dataset.collate_fn if hasattr(dataset, 'collate_fn') else None

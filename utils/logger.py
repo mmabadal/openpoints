@@ -104,7 +104,6 @@ def _cached_log_stream(filename):
 def generate_exp_directory(cfg,
                            exp_name=None,
                            expid=None,
-                           run_name=None,
                            additional_id=None):
     """Function to create checkpoint folder.
     Args:
@@ -116,17 +115,6 @@ def generate_exp_directory(cfg,
     Returns:
         the exp_name, jobname, and folders into cfg
     """
-
-    if run_name is None:
-        if expid is None:
-            expid = time.strftime('%Y%m%d-%H%M%S-') + str(shortuuid.uuid())
-            # expid = time.strftime('%Y%m%d-%H%M%S')
-        if additional_id is not None:
-            expid += '-' + str(additional_id)
-        if isinstance(exp_name, list):
-            exp_name = '-'.join(exp_name)
-        run_name = '-'.join([exp_name, expid])
-    cfg.run_name = run_name
     cfg.run_dir = os.path.join(cfg.root_dir, cfg.run_name)
     cfg.exp_dir = cfg.run_dir
     cfg.log_dir = cfg.run_dir

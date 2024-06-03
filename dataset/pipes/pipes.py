@@ -11,18 +11,7 @@ from ..build import DATASETS
 
 @DATASETS.register_module()
 class PIPES(Dataset):
-    classes = ['floor',
-               'pipe',
-               'valve']
 
-    num_classes = 3
-    num_per_class = np.array([242967508, 19798250, 4955829], dtype=np.int32)  # TODO weights
-    class2color = {'floor':       [0, 0, 0],
-                   'pipe':        [0, 255, 0],
-                   'valve':        [0, 0, 255]}
-
-    cmap = [*class2color.values()]
-    gravity_dim = 2
     """pipes dataset, loading the subsampled entire room as input without block/sphere subsampling.
     number of points per room in average, median, and std: (794855.5, 1005913.0147058824, 939501.4733064277)
     Args:
@@ -36,11 +25,16 @@ class PIPES(Dataset):
         variable (bool, optional): where to use the original number of points. The number of point per point cloud is variable. Defaults to False.
     """
     def __init__(self,
-                 data_root: str = 'data/pipes/pool',
                  voxel_size: float = 0.04,
                  voxel_max=None,
                  split: str = 'train',
                  transform=None,
+                 classes=None,
+                 num_classes: int = 1,
+                 num_per_class=None,
+                 cmap=None,
+                 gravity_dim: int = 2,
+                 data_root: str = '/home',
                  loop: int = 1,
                  presample: bool = False,
                  variable: bool = False,
@@ -48,26 +42,37 @@ class PIPES(Dataset):
                  ):
 
         super().__init__()
-        self.split, self.voxel_size, self.transform, self.voxel_max, self.loop = \
-            split, voxel_size, transform, voxel_max, loop
+        self.split = split
+        self.voxel_size = voxel_size
+        self.transform = transform
+        self.voxel_max = voxel_max
+        self.classes = classes
+        self.num_classes = num_classes
+        self.cmap = cmap
+        self.gravity_dim = gravity_dim
+        self.data_root = data_root    
+        self.voxel_size = voxel_size 
+        self.loop = loop
         self.presample = presample
         self.variable = variable
         self.shuffle = shuffle
 
-        raw_root = data_root
-        self.raw_root = raw_root
-        data_list = sorted(os.listdir(raw_root))
-        data_list = [item[:-4] for item in data_list]
+
         if split == 'train':
-            self.data_list = [item for item in data_list if 'train' in item]     #  TODO de aqui coge train val
+            raw_root = os.path.join(data_root, 'train')
+            self.raw_root = raw_root
+            data_list = sorted(os.listdir(raw_root))
+            data_list = [item[:-4] for item in data_list]
+            self.data_list = [item for item in data_list]     #  TODO de aqui coge train
         else:
-            self.data_list = [item for item in data_list if 'val' in item]      #  TODO de aqui coge train val
+            raw_root = os.path.join(data_root, 'val')
+            self.raw_root = raw_root
+            data_list = sorted(os.listdir(raw_root))
+            data_list = [item[:-4] for item in data_list]
+            self.data_list = [item for item in data_list]      #  TODO de aqui coge val
             for idx, name in enumerate(self.data_list):
                 print(str(idx+1) + " - " + str(name))    
-        #processed_root = os.path.join(data_root, 'processed')
-        #filename = os.path.join(
-        #    processed_root, f'pipes_{split}_{voxel_size:.3f}_{str(voxel_max)}.pkl')
-        #if presample and not os.path.exists(filename):
+
         np.random.seed(0)
         self.data = []
         for item in tqdm(self.data_list, desc=f'Loading pipes {split} split'):
@@ -83,14 +88,7 @@ class PIPES(Dataset):
         npoints = np.array([len(data) for data in self.data])
         logging.info('split: %s, median npoints %.1f, avg num points %.1f, std %.1f' % (
             self.split, np.median(npoints), np.average(npoints), np.std(npoints)))
-            #os.makedirs(processed_root, exist_ok=True)
-            #with open(filename, 'wb') as f:
-            #    pickle.dump(self.data, f)
-            #    print(f"{filename} saved successfully")
-        #elif presample:
-        #    with open(filename, 'rb') as f:
-        #        self.data = pickle.load(f)
-        #        print(f"{filename} load successfully")
+
         self.data_idx = np.arange(len(self.data_list))
         assert len(self.data_idx) > 0
         logging.info(f"Totally {len(self.data_idx)} samples in {split} set")
@@ -108,7 +106,6 @@ class PIPES(Dataset):
             coord, feat, label = crop_pc(
                 coord, feat, label, self.split, self.voxel_size, self.voxel_max,
                 downsample=not self.presample, variable=self.variable, shuffle=self.shuffle)
-            # TODO: do we need to -np.min in cropped data?
         label = label.squeeze(-1).astype(np.long)
         data = {'pos': coord, 'x': feat, 'y': label}
         # pre-process.
@@ -121,14 +118,4 @@ class PIPES(Dataset):
 
     def __len__(self):
         return len(self.data_idx) * self.loop
-        # return 1   # debug
 
-
-"""debug
-from openpoints.dataset import vis_multi_points
-import copy
-old_data = copy.deepcopy(data)
-if self.transform is not None:
-    data = self.transform(data)
-vis_multi_points([old_data['pos'][:, :3], data['pos'][:, :3].numpy()], colors=[old_data['x'][:, :3]/255.,data['x'][:, :3].numpy()])
-"""
