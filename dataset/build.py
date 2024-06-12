@@ -77,6 +77,7 @@ def build_dataloader_from_cfg(cfg,
         split_cfg.cmap = cfg.cmap
         split_cfg.gravity_dim = cfg.datatransforms.kwargs.gravity_dim
         split_cfg.data_root = cfg.dataset.common.data_root
+        split_cfg.points = cfg.points      
         split_cfg.voxel_size = cfg.dataset.common.voxel_size
 
         dataset = build_dataset_from_cfg(dataset_cfg.common, split_cfg)

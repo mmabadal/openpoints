@@ -35,6 +35,7 @@ class PIPES(Dataset):
                  cmap=None,
                  gravity_dim: int = 2,
                  data_root: str = '/home',
+                 points: int = 0,
                  loop: int = 1,
                  presample: bool = False,
                  variable: bool = False,
@@ -51,6 +52,7 @@ class PIPES(Dataset):
         self.cmap = cmap
         self.gravity_dim = gravity_dim
         self.data_root = data_root    
+        self.points = points
         self.voxel_size = voxel_size 
         self.loop = loop
         self.presample = presample
@@ -63,13 +65,13 @@ class PIPES(Dataset):
             self.raw_root = raw_root
             data_list = sorted(os.listdir(raw_root))
             data_list = [item[:-4] for item in data_list]
-            self.data_list = [item for item in data_list]     #  TODO de aqui coge train
+            self.data_list = [item for item in data_list]     #  TODO de aqui coge train list
         else:
             raw_root = os.path.join(data_root, 'val')
             self.raw_root = raw_root
             data_list = sorted(os.listdir(raw_root))
             data_list = [item[:-4] for item in data_list]
-            self.data_list = [item for item in data_list]      #  TODO de aqui coge val
+            self.data_list = [item for item in data_list]      #  TODO de aqui coge val list
             for idx, name in enumerate(self.data_list):
                 print(str(idx+1) + " - " + str(name))    
 
@@ -78,13 +80,18 @@ class PIPES(Dataset):
         for item in tqdm(self.data_list, desc=f'Loading pipes {split} split'):
             data_path = os.path.join(raw_root, item + '.npy')
             cdata = np.load(data_path).astype(np.float32)
-            cdata[:, :3] -= np.min(cdata[:, :3], 0)
+            if points != 0:
+                sub_idx = np.linspace(0, cdata.shape[0]-1, points, dtype=int)
+                sub_cdata = cdata[sub_idx]
+            else:
+                sub_cdata = cdata
+            sub_cdata[:, :3] -= np.min(sub_cdata[:, :3], 0)
             if voxel_size:
-                coord, feat, label = cdata[:,0:3], cdata[:, 3:6], cdata[:, 6:7]
+                coord, feat, label = sub_cdata[:,0:3], sub_cdata[:, 3:6], sub_cdata[:, 6:7]
                 uniq_idx = voxelize(coord, voxel_size)
                 coord, feat, label = coord[uniq_idx], feat[uniq_idx], label[uniq_idx]
-                cdata = np.hstack((coord, feat, label))
-            self.data.append(cdata)
+                sub_cdata = np.hstack((coord, feat, label))
+            self.data.append(sub_cdata)
         npoints = np.array([len(data) for data in self.data])
         logging.info('split: %s, median npoints %.1f, avg num points %.1f, std %.1f' % (
             self.split, np.median(npoints), np.average(npoints), np.std(npoints)))
@@ -101,8 +108,13 @@ class PIPES(Dataset):
             data_path = os.path.join(
                 self.raw_root, self.data_list[data_idx] + '.npy')
             cdata = np.load(data_path).astype(np.float32)
-            cdata[:, :3] -= np.min(cdata[:, :3], 0)
-            coord, feat, label = cdata[:, :3], cdata[:, 3:6], cdata[:, 6:7]
+            if self.points != 0:
+                sub_idx = np.linspace(0, cdata.shape[0]-1, self.points, dtype=int)
+                sub_cdata = cdata[sub_idx]
+            else:
+                sub_cdata = cdata
+            sub_cdata[:, :3] -= np.min(sub_cdata[:, :3], 0)
+            coord, feat, label = sub_cdata[:, :3], sub_cdata[:, 3:6], sub_cdata[:, 6:7]
             coord, feat, label = crop_pc(
                 coord, feat, label, self.split, self.voxel_size, self.voxel_max,
                 downsample=not self.presample, variable=self.variable, shuffle=self.shuffle)
